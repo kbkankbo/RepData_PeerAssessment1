@@ -1,25 +1,132 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+### REPRODUCIBLE RESEARCH- PERSONAL ACTIVITY WEEK 2 PROJECT
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = T)
+```
+
+### Introduction
+This assignment makes use of data from a personal activity monitoring
+device. This device collects data at 5 minute intervals through out the
+day. The data consists of two months of data from an anonymous
+individual collected during the months of October and November, 2012
+and include the number of steps taken in 5 minute intervals each day.
+
+### Data
+
+The data for this assignment can be downloaded from the course web
+site:
+
+* Dataset: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
+
+The variables included in this dataset are:
+
+* **steps**: Number of steps taking in a 5-minute interval (missing
+    values are coded as `NA`)
+
+* **date**: The date on which the measurement was taken in YYYY-MM-DD
+    format
+
+* **interval**: Identifier for the 5-minute interval in which
+    measurement was taken
+
+The dataset is stored in a comma-separated-value (CSV) file and there
+are a total of 17,568 observations in this
+dataset.
+
+### Loading and preprocessing the data
+
+```{r readloaddata}
+
+activity_data <- read.csv("activity.csv", header=T)
+str(activity_data)
+activity_data$date<- as.Date(activity_data$date)
+str(activity_data)
+```
+
+### What is mean total number of steps taken per day?
+```{r totaldailysteps}
+library(dplyr)
+activity_df <- tbl_df(activity_data)
+activity_df_sub1 <- activity_df %>% group_by(date)%>%summarise(total_steps= sum(steps, na.rm= TRUE))
+hist(activity_df_sub1$total_steps, col="lightblue", main= "Histogram of total steps per day", xlab="Total number of daily steps")
+mean1<-mean(activity_df_sub1$total_steps)
+median1<- median(activity_df_sub1$total_steps)
+```
+The mean total number of steps taken daily is `r format(round(mean1), big.mark=",")` and median total number of steps taken daily is `r prettyNum(median1, big.mark=",", scientific=FALSE)`
+
+### What is the average daily activity pattern?
+```{r avgdailypattern}
+activity_df_sub2 <- activity_df %>% group_by(interval)%>%summarise(Avg_steps= mean(steps, na.rm= TRUE))
+with(activity_df_sub2, plot(interval,Avg_steps, type="l", main="Time Series plot of avg number of steps across all days"))
+```
+
+ The 5 min interval that contains the maximum number of steps is 
+`r activity_df_sub2[which.max(activity_df_sub2[[2]]),1]`
+
+### Imputing missing values
+Note that there are a number of days/intervals where there are missing
+values (coded as `NA`). The presence of missing days may introduce
+bias into some calculations or summaries of the data.
+
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with `NA`s)
+```{r total NAs}
+sum(is.na(activity_df))
+```
+The total number of missing values in the dataset is `r sum(is.na(activity_df))`
+
+2. Devise a strategy for filling in all of the missing values in the dataset.Here we are using mean of the 5 minute intervals as follows
+```{r imputemissingvalues}
+act <- activity_df
+nas<- is.na(act$steps)
+act$interval<- as.factor(act$interval)
+avgdailyinterval <- tapply(act$steps, act$interval, mean, na.rm= TRUE, simplify=TRUE)
+head(avgdailyinterval)
+```
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r newdataset}
+act$steps[nas]<- avgdailyinterval[as.character(act$interval[nas])]
+head(act)
+sum(is.na(act))
+```
+
+4. Make a histogram of the total number of steps taken each day and Calculate and report the **mean** and **median** total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+```{r newhistogram}
+actsub<- act %>% group_by(date)%>%summarise(total_steps= sum(steps))
+hist(actsub$total_steps, col="lightblue", main="Histogram of total steps per day after missing values imputation", xlab = "Total number of daily steps")
+```
 
 
-## Loading and preprocessing the data
+Calculating mean and median number of steps
+```{r meanmedian}
+mean2<-mean(actsub$total_steps)
+median2<- median(actsub$total_steps)
+```
+
+The mean total number of steps taken daily is `r format(round(mean2), big.mark=",")` and median total number of steps taken daily is `r prettyNum(median2, big.mark=",", scientific=FALSE)`
+
+These differ from the values without the missing values imputation as follows
+Mean by about `r round(mean2-mean1)` and Median by about `r round(median2-median1)`
+
+Difference in plots can be seen as follows-
+```{r diffplots}
+par(mfrow=c(1,2))
+hist(activity_df_sub1$total_steps, col="lightblue",ylim = c(0,35), main= "Histogram before impute", xlab="Total number of daily steps")
+hist(actsub$total_steps, col="lightblue", main="Histogram after impute", xlab = "Total number of daily steps")
+```
 
 
+### Are there differences in activity patterns between weekdays and weekends?
+```{r wkdywknddiff}
+library(ggplot2)
+actwkdywknd <- act
+actwkdywknd <- mutate(actwkdywknd, weektype = ifelse(weekdays(actwkdywknd$date)=="Saturday"| weekdays(actwkdywknd$date)=="Sunday", "Weekend", "Weekday"))
+actwkdywknd$weektype<- as.factor(actwkdywknd$weektype)
+head(actwkdywknd)
+actwkdywkndsub <- actwkdywknd %>% group_by(interval, weektype)%>% summarise(steps= mean(steps))
+g <- ggplot(actwkdywkndsub, aes(x=interval,y=steps, group=1))+geom_line() + facet_wrap(~weektype, ncol=1,nrow=2)
+print(g)
+```
 
-## What is mean total number of steps taken per day?
 
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+We can see the difference between the activities on weekdays and weekends as above. 
