@@ -1,7 +1,7 @@
 ### REPRODUCIBLE RESEARCH- PERSONAL ACTIVITY WEEK 2 PROJECT
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, cache = T)
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ### Introduction
@@ -69,7 +69,7 @@ values (coded as `NA`). The presence of missing days may introduce
 bias into some calculations or summaries of the data.
 
 1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with `NA`s)
-```{r total NAs}
+```{r totalNAs}
 sum(is.na(activity_df))
 ```
 The total number of missing values in the dataset is `r sum(is.na(activity_df))`
